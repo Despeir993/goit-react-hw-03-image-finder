@@ -4,20 +4,33 @@ import PropTypes from 'prop-types';
 import { Header, Form, Button, Label, Input } from './Searchbar.styled';
 
 export class Searchbar extends Component {
-  state = {
-    query: '',
-  };
+  constructor(props) {
+    super(props);
+    this.state = {
+      query: '',
+    };
+  }
 
-  handleChange = e => this.setState({ query: e.currentTarget.value });
+  handleChange = e => {
+    this.setState({ query: e.target.value });
+  };
 
   handleSubmit = e => {
     e.preventDefault();
 
-    this.props.onSubmit(this.state.query);
+    const { query } = this.state;
+
+    if (query.trim() === '') {
+      return; // Не виконуємо запит, якщо квері пуста
+    }
+
+    this.props.onSubmit(query);
     this.setState({ query: '' });
   };
 
   render() {
+    const { query } = this.state;
+
     return (
       <Header>
         <Form onSubmit={this.handleSubmit}>
@@ -27,11 +40,11 @@ export class Searchbar extends Component {
 
           <Input
             type="text"
-            autocomplete="off"
+            autoComplete="off"
             autoFocus
             placeholder="Search images and photos"
             onChange={this.handleChange}
-            value={this.state.query}
+            value={query}
           />
         </Form>
       </Header>
