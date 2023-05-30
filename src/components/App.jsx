@@ -45,18 +45,4 @@ export default class App extends Component {
     });
   };
   render() {
-    const { images, isShowBtn, isLoading } = this.state;
-    return (
-      <div>
-        <Searchbar onSubmit={this.handleFormSubmit}></Searchbar>
-        {images && <ImageGallery images={images}></ImageGallery>}
-        {isLoading && <Loader></Loader>}
-        {images?.length > 0 && isShowBtn && (
-          <Button handleClick={this.handleClick}></Button>
-        )}
-      </div>
-    );
-  }
-}
-
-export { App };
+    
