@@ -1,96 +1,62 @@
+import Searchbar from './Searchbar/Searchbar';
 import React, { Component } from 'react';
-
-import { Searchbar } from './Searchbar';
-import { ImageGallery } from './ImageGallery';
-import { Button } from './Button';
-import { ThreeDots } from 'react-loader-spinner';
-
-import { Api } from '../api';
-
-import { AppEl } from './App.styled';
-
-const api = new Api();
-
-// idle
-// pending
-// resolve
-// rejected
-
-export class App extends Component {
+import fetchFunc from './ImageInfo/ImageInfo';
+import ImageGallery from './ImageGallery/ImageGallery';
+import Button from './Button/Button';
+import { Loader } from './Loader/Loader';
+export default class App extends Component {
   state = {
-    query: '',
+    value: '',
+    images: null,
     page: 1,
-    images: [],
-    status: 'idle',
-    showSpinner: false,
+    per_page: 12,
+    isLoading: false,
+    isShowBtn: false,
   };
-
-  async componentDidUpdate(_, prevState) {
-    try {
-      const { query, page } = this.state;
-      const hasPageUpdate = page !== prevState.page;
-
-      if (query !== prevState.query || hasPageUpdate) {
-        api.query = query;
-        const data = await api.fetch(page);
-
-        if (data.length === 0) {
-          throw new Error();
-        }
-
-        this.setState(({ images }) => ({
-          images: hasPageUpdate && page > 1 ? [...images, ...data] : [...data],
-          status: 'resolve',
-          showSpinner: false,
-        }));
-      }
-    } catch (error) {
-      this.setState({ status: 'rejected' });
+  componentDidUpdate(prevProps, prevState) {
+    if (
+      prevState.page !== this.state.page ||
+      prevState.value !== this.state.value
+    ) {
+      this.setState({ isLoading: true });
+      fetchFunc(this.state.value, this.state.per_page, this.state.page)
+        .then(images => {
+          const hits = images.hits.map(
+            ({ id, webformatURL, largeImageURL }) => {
+              return { id, webformatURL, largeImageURL };
+            }
+          );
+          this.setState(prevState => {
+            return {
+              images: prevState.images ? [...prevState.images, ...hits] : hits,
+              isShowBtn: this.state.page < Math.ceil(images.totalHits / 12),
+            };
+          });
+        })
+        .finally(() => this.setState({ isLoading: false }));
     }
   }
-
-  loadMore = () =>
-    this.setState(({ page }) => ({ page: (page += 1), showSpinner: true }));
-
-  onSubmit = query =>
-    this.setState(() => ({ query, page: 1, status: 'pending' }));
-
+  handleFormSubmit = cardTitle => {
+    this.setState({ value: cardTitle, images: null, page: 1 });
+  };
+  handleClick = () => {
+    this.setState(prevState => {
+      return { page: prevState.page + 1 };
+    });
+  };
   render() {
-    const { images, status, showSpinner } = this.state;
-
+    const { images, isShowBtn, isLoading } = this.state;
     return (
-      <AppEl>
-        <Searchbar onSubmit={this.onSubmit} />
-
-        {status === 'idle' && (
-          <h2 style={{ margin: '0 auto' }}>Введіть що небудь</h2>
+      <div>
+        <Searchbar onSubmit={this.handleFormSubmit}></Searchbar>
+        {images && <ImageGallery images={images}></ImageGallery>}
+        {isLoading && <Loader></Loader>}
+        {images?.length > 0 && isShowBtn && (
+          <Button handleClick={this.handleClick}></Button>
         )}
-
-        {status === 'pending' && (
-          <ThreeDots
-            color={'#3f51b5'}
-            wrapperStyle={{ justifyContent: 'center' }}
-          />
-        )}
-
-        {status === 'resolve' && (
-          <>
-            <ImageGallery images={images} />
-            {showSpinner ? (
-              <ThreeDots
-                color={'#3f51b5'}
-                wrapperStyle={{ justifyContent: 'center' }}
-              />
-            ) : (
-              <Button onClick={this.loadMore}>Load more</Button>
-            )}
-          </>
-        )}
-
-        {status === 'rejected' && (
-          <h2 style={{ margin: '0 auto' }}>Нічого не знайдено</h2>
-        )}
-      </AppEl>
+      </div>
     );
   }
 }
+
+export { App };
